@@ -16,6 +16,7 @@ export default function TrackingMap({ carrierPos, routeCoords, routeProgress }: 
   const polylineDoneRef = useRef<L.Polyline | null>(null);
   const polylineRemainRef = useRef<L.Polyline | null>(null);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (typeof window === "undefined" || !mapRef.current || mapInstanceRef.current) return;
     
