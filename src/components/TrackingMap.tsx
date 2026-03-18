@@ -80,7 +80,7 @@ export default function TrackingMap({ carrierPos, routeCoords, routeProgress }: 
     };
   }, []);
 
-  // Update Dynamic Elements
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!mapInstanceRef.current) return;
 
@@ -98,7 +98,7 @@ export default function TrackingMap({ carrierPos, routeCoords, routeProgress }: 
     if (polylineDoneRef.current) polylineDoneRef.current.setLatLngs(donePath);
     if (polylineRemainRef.current) polylineRemainRef.current.setLatLngs(remainPath);
 
-  }, [carrierPos.lat, carrierPos.lng, routeProgress, routeCoords]);
+  }, []);
 
   return (
     <div 
