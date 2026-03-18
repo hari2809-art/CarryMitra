@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "carrymitra"
+  },
+  "targets": {
+    "carrymitra": {
+      "hosting": {
+        "main": [
+          "carrymitra"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}
