@@ -3,6 +3,9 @@
 import { useEffect, useRef } from "react";
 import type L from "leaflet";
 
+// Move CSS import to top-level to fix TypeScript error in dynamic import
+import "leaflet/dist/leaflet.css";
+
 interface Props {
   carrierPos: { lat: number; lng: number; speed: number };
   routeCoords: [number, number][];
@@ -20,9 +23,8 @@ export default function TrackingMap({ carrierPos, routeCoords, routeProgress }: 
   useEffect(() => {
     if (typeof window === "undefined" || !mapRef.current || mapInstanceRef.current) return;
     
+    // Dynamic import Leaflet JS only
     import("leaflet").then((L) => {
-      import("leaflet/dist/leaflet.css");
-
       // Fix default icon issue
       delete (L.Icon.Default.prototype as any)._getIconUrl;
       L.Icon.Default.mergeOptions({
