@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { useEffect, useRef } from "react";
+import type L from "leaflet";
 
 interface Props {
   carrierPos: { lat: number; lng: number; speed: number };
@@ -9,38 +11,37 @@ interface Props {
 
 export default function TrackingMap({ carrierPos, routeCoords, routeProgress }: Props) {
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
-  const carrierMarkerRef = useRef<any>(null);
-  const polylineDoneRef = useRef<any>(null);
-  const polylineRemainRef = useRef<any>(null);
+  const mapInstanceRef = useRef<L.Map | null>(null);
+  const carrierMarkerRef = useRef<L.Marker | null>(null);
+  const polylineDoneRef = useRef<L.Polyline | null>(null);
+  const polylineRemainRef = useRef<L.Polyline | null>(null);
 
   useEffect(() => {
-    if (typeof window === "undefined" || !mapRef.current) return;
+    if (typeof window === "undefined" || !mapRef.current || mapInstanceRef.current) return;
     
-    // Dynamic import Leaflet
-    const L = require("leaflet");
-    require("leaflet/dist/leaflet.css");
+    import("leaflet").then((L) => {
+      import("leaflet/dist/leaflet.css");
 
-    // Fix default icon issue
-    delete L.Icon.Default.prototype._getIconUrl;
-    L.Icon.Default.mergeOptions({
-      iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-      iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-      shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-    });
+      // Fix default icon issue
+      delete (L.Icon.Default.prototype as any)._getIconUrl;
+      L.Icon.Default.mergeOptions({
+        iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+        iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+        shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+      });
 
-    if (!mapInstanceRef.current) {
       // Initialize Map
       const center: [number, number] = routeCoords[0] || [17.385, 78.4867];
-      mapInstanceRef.current = L.map(mapRef.current, {
+      const map = L.map(mapRef.current!, {
         zoomControl: false,
         attributionControl: false,
       }).setView(center, 7);
+      mapInstanceRef.current = map;
 
       // Dark Mode Tiles
       L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
         attribution: "© CartoDB",
-      }).addTo(mapInstanceRef.current);
+      }).addTo(map);
 
       // Icons
       const truckIcon = L.divIcon({
@@ -59,16 +60,17 @@ export default function TrackingMap({ carrierPos, routeCoords, routeProgress }: 
 
       // Markers
       if (routeCoords.length > 0) {
-        L.marker(routeCoords[0], { icon: pinIcon("#16a34a", "📍") }).addTo(mapInstanceRef.current);
-        L.marker(routeCoords[routeCoords.length - 1], { icon: pinIcon("#dc2626", "🏁") }).addTo(mapInstanceRef.current);
+        L.marker(routeCoords[0], { icon: pinIcon("#16a34a", "📍") }).addTo(map);
+        L.marker(routeCoords[routeCoords.length - 1], { icon: pinIcon("#dc2626", "🏁") }).addTo(map);
       }
 
-      carrierMarkerRef.current = L.marker([carrierPos.lat || center[0], carrierPos.lng || center[1]], { icon: truckIcon }).addTo(mapInstanceRef.current);
+      const carrierMarker = L.marker([carrierPos.lat || center[0], carrierPos.lng || center[1]], { icon: truckIcon }).addTo(map);
+      carrierMarkerRef.current = carrierMarker;
 
       // Polylines
-      polylineDoneRef.current = L.polyline([], { color: "#2563EB", weight: 4, opacity: 0.9 }).addTo(mapInstanceRef.current);
-      polylineRemainRef.current = L.polyline(routeCoords, { color: "#64748b", weight: 3, opacity: 0.6, dashArray: "8 6" }).addTo(mapInstanceRef.current);
-    }
+      polylineDoneRef.current = L.polyline([], { color: "#2563EB", weight: 4, opacity: 0.9 }).addTo(map);
+      polylineRemainRef.current = L.polyline(routeCoords, { color: "#64748b", weight: 3, opacity: 0.6, dashArray: "8 6" }).addTo(map);
+    });
 
     return () => {
       if (mapInstanceRef.current) {
@@ -96,7 +98,7 @@ export default function TrackingMap({ carrierPos, routeCoords, routeProgress }: 
     if (polylineDoneRef.current) polylineDoneRef.current.setLatLngs(donePath);
     if (polylineRemainRef.current) polylineRemainRef.current.setLatLngs(remainPath);
 
-  }, [carrierPos, routeProgress, routeCoords]);
+  }, [carrierPos.lat, carrierPos.lng, routeProgress, routeCoords]);
 
   return (
     <div 
