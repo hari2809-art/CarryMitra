@@ -9,8 +9,6 @@ const withPWA = require("next-pwa")({
 const nextConfig = {
   output: 'export',
   trailingSlash: true,
-  basePath: '/CarryMitra',
-  assetPrefix: '/CarryMitra',
   images: {
     unoptimized: true,
   },
