@@ -41,7 +41,7 @@ export default function TrackingClient({ parcelId }: { parcelId: string }) {
   ]);
   const [carrierPos, setCarrierPos] = useState({ lat: 0, lng: 0, speed: 0 });
   const [routeKey, setRouteKey] = useState("Kadapa-Hyderabad");
-  const [carrierName, setCarrierName] = useState("Deepak Kumar");
+  const [carrierName, setCarrierName] = useState("Loading...");
   const [routeProgress, setRouteProgress] = useState(0);
   const [lastReceived, setLastReceived] = useState<number | null>(null);
   const [gpsError, setGpsError] = useState<string | null>(null);

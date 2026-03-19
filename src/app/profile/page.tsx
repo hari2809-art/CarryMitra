@@ -22,22 +22,10 @@ interface UserProfile {
   totalEarnings: number;
 }
 
-const DEFAULT_PROFILE: UserProfile = {
-  name: "Deepak Kumar",
-  email: "deepak@example.com",
-  phone: "+91 98765 43210",
-  address: "Hyderabad, Telangana",
-  photoURL: "",
-  isVerified: true,
-  rating: 4.8,
-  totalDeliveries: 24,
-  totalEarnings: 4250,
-};
-
 export default function ProfilePage() {
   const router = useRouter();
   const { userProfile, loading: authLoading } = useAuth();
-  const [profile, setProfile] = useState<UserProfile>(DEFAULT_PROFILE);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
@@ -48,8 +36,20 @@ export default function ProfilePage() {
       try {
         const docRef = doc(db, "users", user.uid);
         const docSnap = await getDoc(docRef);
+        
         if (docSnap.exists()) {
-          setProfile(docSnap.data() as UserProfile);
+          const data = docSnap.data();
+          setProfile({
+            name: data.name || "No name",
+            email: data.email || "No email",
+            phone: user.phoneNumber || data.phone || "No phone",
+            address: data.address || "No address",
+            photoURL: data.photoURL || "",
+            isVerified: data.isVerified || false,
+            rating: data.rating || 5.0,
+            totalDeliveries: data.totalDeliveries || 0,
+            totalEarnings: data.totalEarnings || 0,
+          });
         } else if (userProfile) {
           setProfile(userProfile);
         }
@@ -84,9 +84,9 @@ export default function ProfilePage() {
     // setLoading(true);
     try {
       await updateDoc(doc(db, "users", uid), {
-        name: profile.name,
-        email: profile.email,
-        address: profile.address,
+        name: profile?.name,
+        email: profile?.email,
+        address: profile?.address,
       } as Record<string, unknown>);
       toast.success("Profile updated!");
       setIsEditing(false);
@@ -96,52 +96,64 @@ export default function ProfilePage() {
     }
   }
 
-  return (
-    <div className={`min-h-screen bg-slate-950 px-5 pt-12 pb-nav ${authLoading ? "opacity-50 pointer-events-none" : ""}`}>
-      {/* Profile Header */}
-      <div className="flex flex-col items-center mb-8 relative">
-        <div className="w-28 h-28 rounded-full border-4 border-blue-600/30 p-1 mb-4 relative">
-          <div className="w-full h-full rounded-full bg-slate-800 overflow-hidden relative">
-            {profile.photoURL ? (
-              <Image src={profile.photoURL} alt="Profile" fill className="object-cover" />
-            ) : (
-              <UserCircleIcon className="w-full h-full text-slate-700" />
-            )}
-          </div>
-          {profile.isVerified && (
-            <div className="absolute bottom-1 right-1 bg-blue-600 text-white p-1.5 rounded-full border-4 border-slate-950">
-              <ShieldCheckIcon className="w-4 h-4" />
-            </div>
-          )}
-        </div>
-        
-        <div className="text-center">
-          <h1 className="text-2xl font-black text-white flex items-center justify-center gap-2">
-            {profile.name}
-            {profile.isVerified && <span className="text-blue-500 text-sm font-bold bg-blue-500/10 px-2 py-0.5 rounded-full">VERIFIED ✓</span>}
-          </h1>
-          <p className="text-slate-500 text-sm mt-1">{profile.email}</p>
-        </div>
+  if (authLoading || !profile) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
       </div>
+    );
+  }
 
-      {/* Stats Row */}
-      <div className="grid grid-cols-3 gap-3 mb-8">
-        <div className="glass-card p-4 text-center">
-          <StarIcon className="w-5 h-5 text-amber-400 mx-auto mb-1" />
-          <p className="text-white font-bold">{profile.rating}</p>
-          <p className="text-slate-500 text-[10px] uppercase">Rating</p>
-        </div>
-        <div className="glass-card p-4 text-center border-blue-500/20">
-          <TruckIcon className="w-5 h-5 text-blue-400 mx-auto mb-1" />
-          <p className="text-white font-bold">{profile.totalDeliveries}</p>
-          <p className="text-slate-500 text-[10px] uppercase">Deliveries</p>
-        </div>
-        <div className="glass-card p-4 text-center border-green-500/20">
-          <CurrencyRupeeIcon className="w-5 h-5 text-green-400 mx-auto mb-1" />
-          <p className="text-white font-bold">₹{profile.totalEarnings}</p>
-          <p className="text-slate-500 text-[10px] uppercase">Earned</p>
-        </div>
-      </div>
+  return (
+    <div className="min-h-screen bg-slate-950 px-5 pt-12 pb-nav">
+      {profile && (
+        <>
+          {/* Profile Header */}
+          <div className="flex flex-col items-center mb-8 relative">
+            <div className="w-28 h-28 rounded-full border-4 border-blue-600/30 p-1 mb-4 relative">
+              <div className="w-full h-full rounded-full bg-slate-800 overflow-hidden relative">
+                {profile.photoURL ? (
+                  <Image src={profile.photoURL} alt="Profile" fill className="object-cover" />
+                ) : (
+                  <UserCircleIcon className="w-full h-full text-slate-700" />
+                )}
+              </div>
+              {profile.isVerified && (
+                <div className="absolute bottom-1 right-1 bg-blue-600 text-white p-1.5 rounded-full border-4 border-slate-950">
+                  <ShieldCheckIcon className="w-4 h-4" />
+                </div>
+              )}
+            </div>
+            
+            <div className="text-center">
+              <h1 className="text-2xl font-black text-white flex items-center justify-center gap-2">
+                {profile.name}
+                {profile.isVerified && <span className="text-blue-500 text-sm font-bold bg-blue-500/10 px-2 py-0.5 rounded-full">VERIFIED ✓</span>}
+              </h1>
+              <p className="text-slate-500 text-sm mt-1">{profile.email}</p>
+            </div>
+          </div>
+
+          {/* Stats Row */}
+          <div className="grid grid-cols-3 gap-3 mb-8">
+            <div className="glass-card p-4 text-center">
+              <StarIcon className="w-5 h-5 text-amber-400 mx-auto mb-1" />
+              <p className="text-white font-bold">{profile.rating}</p>
+              <p className="text-slate-500 text-[10px] uppercase">Rating</p>
+            </div>
+            <div className="glass-card p-4 text-center border-blue-500/20">
+              <TruckIcon className="w-5 h-5 text-blue-400 mx-auto mb-1" />
+              <p className="text-white font-bold">{profile.totalDeliveries}</p>
+              <p className="text-slate-500 text-[10px] uppercase">Deliveries</p>
+            </div>
+            <div className="glass-card p-4 text-center border-green-500/20">
+              <CurrencyRupeeIcon className="w-5 h-5 text-green-400 mx-auto mb-1" />
+              <p className="text-white font-bold">₹{profile.totalEarnings}</p>
+              <p className="text-slate-500 text-[10px] uppercase">Earned</p>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Profile Sections */}
       <div className="space-y-4">
@@ -166,7 +178,7 @@ export default function ProfilePage() {
                   <input 
                     type="text" 
                     value={profile.name} 
-                    onChange={e => setProfile({...profile, name: e.target.value})}
+                    onChange={e => setProfile(prev => prev ? {...prev, name: e.target.value} : null)}
                     className="w-full bg-slate-800 border-b border-blue-500 text-white text-sm py-1 focus:outline-none"
                   />
                 ) : (
@@ -183,7 +195,7 @@ export default function ProfilePage() {
                   <input 
                     type="text" 
                     value={profile.address} 
-                    onChange={e => setProfile({...profile, address: e.target.value})}
+                    onChange={e => setProfile(prev => prev ? {...prev, address: e.target.value} : null)}
                     className="w-full bg-slate-800 border-b border-blue-500 text-white text-sm py-1 focus:outline-none"
                   />
                 ) : (

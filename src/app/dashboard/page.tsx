@@ -32,20 +32,10 @@ interface UserStats {
   role: "sender" | "carrier";
 }
 
-// Demo data
-const DEMO_STATS: UserStats = {
-  totalEarnings: 4250,
-  totalDeliveries: 23,
-  name: "Deepak Kumar",
-  address: "Hyderabad",
-  photoURL: "",
-  role: "carrier",
-};
-
 export default function DashboardPage() {
   const router = useRouter();
   const { userProfile, loading: authLoading } = useAuth();
-  const [stats, setStats] = useState<UserStats>(DEMO_STATS);
+  const [stats, setStats] = useState<UserStats | null>(null);
   const [role, setRole] = useState<"sender" | "carrier">("carrier");
   const [fromCity, setFromCity] = useState("Hyderabad");
   const [toCity, setToCity] = useState("Bangalore");
@@ -96,9 +86,17 @@ export default function DashboardPage() {
     }
   }
 
-  const avgJobValue = stats.totalDeliveries > 0
+  const avgJobValue = stats?.totalDeliveries && stats.totalDeliveries > 0
     ? Math.round(stats.totalEarnings / stats.totalDeliveries)
     : 0;
+
+  if (authLoading || (!userProfile && !stats)) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 pb-nav">
@@ -111,13 +109,13 @@ export default function DashboardPage() {
             </div>
             <div>
               <p className="text-slate-400 text-xs">Welcome back,</p>
-              <p className="text-white font-semibold text-sm">{userProfile?.name || stats.name || "User"}</p>
+              <p className="text-white font-semibold text-sm">{userProfile?.name || stats?.name || "User"}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1 bg-slate-800 rounded-lg px-2 py-1">
               <MapPinIcon className="w-3.5 h-3.5 text-blue-400" />
-              <span className="text-slate-300 text-xs">{stats.address || "Hyderabad"}</span>
+              <span className="text-slate-300 text-xs">{userProfile?.address || stats?.address || "Location..."}</span>
             </div>
             <button className="relative w-9 h-9 bg-slate-800 rounded-full flex items-center justify-center">
               <BellIcon className="w-5 h-5 text-slate-400" />
@@ -200,9 +198,9 @@ export default function DashboardPage() {
         <div className="grid grid-cols-2 gap-3">
           {[
             { label: "This Week's Earnings", value: `₹${weekEarnings}`, color: "text-green-400", bg: "from-green-600/10 to-emerald-600/5" },
-            { label: "Completed Jobs", value: stats.totalDeliveries, color: "text-blue-400", bg: "from-blue-600/10 to-blue-600/5" },
+            { label: "Completed Jobs", value: stats?.totalDeliveries || 0, color: "text-blue-400", bg: "from-blue-600/10 to-blue-600/5" },
             { label: "Today's Earnings", value: `₹${todayEarnings}`, color: "text-amber-400", bg: "from-amber-600/10 to-amber-600/5" },
-            { label: "Avg Job Value", value: `₹${avgJobValue || 185}`, color: "text-purple-400", bg: "from-purple-600/10 to-purple-600/5" },
+            { label: "Avg Job Value", value: `₹${avgJobValue || 0}`, color: "text-purple-400", bg: "from-purple-600/10 to-purple-600/5" },
           ].map((item) => (
             <div key={item.label} className={`glass-card p-4 bg-gradient-to-br ${item.bg}`}>
               <p className="text-slate-400 text-xs mb-1">{item.label}</p>
