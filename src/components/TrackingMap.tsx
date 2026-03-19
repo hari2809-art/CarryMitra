@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import type L from "leaflet";
 
 // Move CSS import to top-level to fix TypeScript error in dynamic import
-// @ts-ignore
+// @ts-expect-error
 import "leaflet/dist/leaflet.css";
 
 interface Props {
