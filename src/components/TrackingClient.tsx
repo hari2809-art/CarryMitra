@@ -43,6 +43,8 @@ export default function TrackingClient({ parcelId }: { parcelId: string }) {
   const [routeKey, setRouteKey] = useState("Kadapa-Hyderabad");
   const [carrierName, setCarrierName] = useState("Deepak Kumar");
   const [routeProgress, setRouteProgress] = useState(0);
+  const [lastReceived, setLastReceived] = useState<number | null>(null);
+  const [gpsError, setGpsError] = useState<string | null>(null);
   const intervalRef = useRef<NodeJS.Timeout>();
   const watchRef = useRef<number>();
 
@@ -94,36 +96,52 @@ export default function TrackingClient({ parcelId }: { parcelId: string }) {
   const startGPSTracking = useCallback(() => {
     if (!navigator.geolocation) {
       toast.error("GPS not available");
+      setGpsError("GPS not available in this browser");
       return;
     }
+
+    setGpsError(null);
     watchRef.current = navigator.geolocation.watchPosition(
       (pos) => {
         const locationData = {
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
-          speed: pos.coords.speed || 0,
-          heading: pos.coords.heading || 0,
+          speed: pos.coords.speed ? Math.round(pos.coords.speed * 3.6) : 0, // convert m/s to km/h
           timestamp: Date.now(),
         };
         setCarrierPos({ lat: locationData.lat, lng: locationData.lng, speed: locationData.speed });
+        setLastReceived(Date.now());
         try {
-          set(rtdbRef(rtdb, `tracking/${parcelId}`), locationData);
-        } catch { /* rtdb not configured */ }
+          if (parcelId !== "demo") {
+            set(rtdbRef(rtdb, `tracking/${parcelId}`), locationData);
+          }
+        } catch (err) {
+          console.error("RTDB error:", err);
+        }
       },
-      (err) => toast.error(`GPS error: ${err.message}`),
-      { enableHighAccuracy: true, timeout: 10000 }
+      (err) => {
+        let msg = "GPS error: " + err.message;
+        if (err.code === 1) msg = "Please enable GPS in browser settings to use live tracking";
+        setGpsError(msg);
+        toast.error(msg);
+        setDemoMode(true);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parcelId]);
 
   // Real GPS: listen on RTDB (sender side)
   useEffect(() => {
-    if (demoMode) return;
+    if (demoMode || parcelId === "demo") return;
     try {
       const trackRef = rtdbRef(rtdb, `tracking/${parcelId}`);
       const unsub = onValue(trackRef, (snap) => {
         const data = snap.val();
-        if (data) setCarrierPos({ lat: data.lat, lng: data.lng, speed: data.speed || 0 });
+        if (data) {
+          setCarrierPos({ lat: data.lat, lng: data.lng, speed: data.speed || 0 });
+          setLastReceived(data.timestamp || Date.now());
+        }
       });
       return () => unsub();
     } catch { /* rtdb not configured */ }
@@ -180,7 +198,7 @@ export default function TrackingClient({ parcelId }: { parcelId: string }) {
           </div>
           <div className="text-center">
             <p className="text-slate-400 text-xs">Speed</p>
-            <p className="text-blue-400 font-bold">{carrierPos.speed || 60} km/h</p>
+            <p className="text-blue-400 font-bold">{carrierPos.speed} km/h</p>
           </div>
           <div className="text-right">
             <p className="text-slate-400 text-xs">ETA</p>
@@ -188,6 +206,31 @@ export default function TrackingClient({ parcelId }: { parcelId: string }) {
           </div>
         </div>
       </div>
+
+      {/* GPS Status / Warnings */}
+      {!demoMode && (
+        <div className="px-4 mb-2">
+          {gpsError ? (
+            <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-red-500 text-xs text-center">
+              ⚠️ {gpsError}
+            </div>
+          ) : lastReceived ? (
+            <div className="flex items-center justify-between px-2">
+              <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider flex items-center gap-1">
+                <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                Live GPS Connected
+              </span>
+              <span className="text-[10px] text-slate-400 italic">
+                {Math.round((Date.now() - lastReceived) / 1000) > 60 ? (
+                  <span className="text-amber-500 font-bold">⚠️ Carrier location unavailable</span>
+                ) : (
+                  `Last updated ${Math.max(0, Math.round((Date.now() - lastReceived) / 1000))}s ago`
+                )}
+              </span>
+            </div>
+          ) : null}
+        </div>
+      )}
 
       {/* Map */}
       <div className="px-4">

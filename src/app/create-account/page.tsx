@@ -68,7 +68,7 @@ export default function CreateAccountPage() {
         address: form.address,
         photoURL,
         isVerified: false,
-        rating: 0,
+        rating: 5.0,
         totalDeliveries: 0,
         totalEarnings: 0,
         role: "sender",

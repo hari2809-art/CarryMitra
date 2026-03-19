@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc, getDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { useAuth } from "@/hooks/useAuth";
 import BottomNav from "@/components/BottomNav";
@@ -41,10 +41,28 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
-    if (userProfile) {
-      setProfile(userProfile);
+    async function fetchProfile() {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      try {
+        const docRef = doc(db, "users", user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setProfile(docSnap.data() as UserProfile);
+        } else if (userProfile) {
+          setProfile(userProfile);
+        }
+      } catch (err) {
+        console.error("Error fetching profile:", err);
+        if (userProfile) setProfile(userProfile);
+      }
     }
-  }, [userProfile]);
+
+    if (!authLoading) {
+      fetchProfile();
+    }
+  }, [userProfile, authLoading]);
 
   async function handleLogout() {
     try {

@@ -111,7 +111,7 @@ export default function DashboardPage() {
             </div>
             <div>
               <p className="text-slate-400 text-xs">Welcome back,</p>
-              <p className="text-white font-semibold text-sm">{stats.name || "User"}</p>
+              <p className="text-white font-semibold text-sm">{userProfile?.name || stats.name || "User"}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
