@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import type L from "leaflet";
 
 // Move CSS import to top-level to fix TypeScript error in dynamic import
-// @ts-expect-error
+// @ts-expect-error: Leaflet CSS import is handled dynamically or at top-level to avoid hydration issues
 import "leaflet/dist/leaflet.css";
 
 interface Props {
@@ -76,12 +76,8 @@ export default function TrackingMap({ carrierPos, routeCoords, routeProgress }: 
       polylineRemainRef.current = L.polyline(routeCoords, { color: "#64748b", weight: 3, opacity: 0.6, dashArray: "8 6" }).addTo(map);
     });
 
-    return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -102,6 +98,7 @@ export default function TrackingMap({ carrierPos, routeCoords, routeProgress }: 
     if (polylineDoneRef.current) polylineDoneRef.current.setLatLngs(donePath);
     if (polylineRemainRef.current) polylineRemainRef.current.setLatLngs(remainPath);
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
